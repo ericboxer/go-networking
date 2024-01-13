@@ -16,6 +16,29 @@ type UDPComms struct {
 	closeChan    chan struct{}
 }
 
+// InitUDP initializes and returns a new UDPComms instance
+func InitUDP(localAddress IPAddress, sendPort int) (*UDPComms, error) {
+    udpComms := &UDPComms{
+        localAddress: localAddress,
+        sendPort:     sendPort,
+        handler:      defaultHandler,
+        closeChan:    make(chan struct{}),
+    }
+
+    addr, err := udpComms.localAddress.Resolved()
+    if err != nil {
+        return nil, fmt.Errorf("error resolving local address: %w", err)
+    }
+
+    conn, err := net.ListenUDP("udp", addr)
+    if err != nil {
+        return nil, fmt.Errorf("error listening on port %d: %w", udpComms.localAddress.Port, err)
+    }
+
+    udpComms.conn = conn
+    return udpComms, nil
+}
+
 func (u *UDPComms) Init(localAddress IPAddress, sendPort int) error {
 	u.localAddress = localAddress
 	u.sendPort = sendPort
@@ -81,6 +104,6 @@ func (u *UDPComms) Close() {
 }
 
 
-func (u *UDPComms) defaultHandler(data []byte,addr *net.UDPAddr) {
+func defaultHandler(data []byte,addr *net.UDPAddr) {
 	fmt.Println("%s:%d->%v", addr.IP, addr.Port, data)
 }
